@@ -1,0 +1,21 @@
+package ru.cargo5.criminalintent
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
+import androidx.lifecycle.ViewModel
+import ru.cargo5.criminalintent.database.CrimeRepository
+import java.util.*
+
+class CrimeDetailViewModel(): ViewModel() {
+    private val crimeRepository = CrimeRepository.get()
+    private val crimeIdLiveData = MutableLiveData<UUID>()
+
+    var crimeLiveData: LiveData<Crime?> = Transformations.switchMap(crimeIdLiveData){
+        crimeId -> crimeRepository.getCrime(crimeId)
+    }
+
+    fun loadCrime(crimeId: UUID){
+        crimeIdLiveData.value = crimeId
+    }
+}

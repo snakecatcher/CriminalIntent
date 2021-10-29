@@ -1,5 +1,6 @@
 package ru.cargo5.criminalintent
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -13,15 +14,32 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.util.*
+import javax.security.auth.callback.Callback
 
 private const val TAG = "CrimeListFragment"
 
 class CrimeListFragment:Fragment() {
+
+    interface Callbacks{
+        fun onCrimeSelected(crimeId:UUID)
+    }
+    private var  callbacks: Callbacks? = null
     private var adapter: CrimeAdapter? = CrimeAdapter(emptyList())
     private lateinit var crimeRecyclerView: RecyclerView
 
     private val crimeListViewModel:CrimeListViewModel by lazy {
         ViewModelProviders.of(this).get(CrimeListViewModel::class.java)
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        callbacks = null
     }
 
 
@@ -81,6 +99,7 @@ class CrimeListFragment:Fragment() {
         }
 
         override fun onClick(p0: View?) {
+            callbacks?.onCrimeSelected(crime.id)
             Toast.makeText(context, "${crime.title} pressed!", Toast.LENGTH_SHORT).show()
         }
     }
