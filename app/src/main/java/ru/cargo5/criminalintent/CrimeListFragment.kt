@@ -14,39 +14,49 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import ru.cargo5.criminalintent.adapters.CrimeAdapter
 import java.util.*
 import javax.security.auth.callback.Callback
 
 private const val TAG = "CrimeListFragment"
 
-class CrimeListFragment:Fragment() {
+class CrimeListFragment:Fragment(), CrimeAdapter.Callbacks {
 
-    interface Callbacks{
-        fun onCrimeSelected(crimeId:UUID)
+    interface FragmentCallback{
+        fun onCrimeSelected(crimeId: UUID)
     }
-    private var  callbacks: Callbacks? = null
-    private var adapter: CrimeAdapter? = CrimeAdapter(emptyList())
-    private lateinit var crimeRecyclerView: RecyclerView
+
+    private var callback: CrimeAdapter.Callbacks? = null
+    private var fragmentCallback: FragmentCallback? = null
+
+
+    private val adapter: CrimeAdapter by lazy {
+        CrimeAdapter(this)
+    }
 
     private val crimeListViewModel:CrimeListViewModel by lazy {
         ViewModelProviders.of(this).get(CrimeListViewModel::class.java)
     }
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        callbacks = context as Callbacks?
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        callbacks = null
-    }
+    private lateinit var crimeRecyclerView: RecyclerView
 
 
     companion object{
         fun newInstance():CrimeListFragment{
             return CrimeListFragment()
         }
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callback = this as CrimeAdapter.Callbacks?
+        fragmentCallback = context as FragmentCallback?
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        callback = null
+        fragmentCallback = null
     }
 
     override fun onCreateView(
@@ -61,8 +71,7 @@ class CrimeListFragment:Fragment() {
     }
 
     private fun updateUI(crimes: List<Crime>){
-        adapter = CrimeAdapter(crimes)
-        crimeRecyclerView.adapter = adapter
+        adapter.submitList(crimes)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -70,51 +79,16 @@ class CrimeListFragment:Fragment() {
         crimeListViewModel.crimeListLiveData.observe(
             viewLifecycleOwner,
             Observer {crimes -> crimes?.let {
-                Log.i(TAG, "Gor crimes ${crimes.size}")
+                Log.i(TAG, "Got crimes ${crimes.size}")
                 updateUI(crimes)
             }}
         )
     }
 
-
-    private inner class CrimeHolder(view:View):RecyclerView.ViewHolder(view), View.OnClickListener{
-        private lateinit var crime: Crime
-        val titleTextView:TextView = itemView.findViewById(R.id.crime_title)
-        val dateTextView:TextView = itemView.findViewById(R.id.crime_date)
-        val solvedImageView: ImageView = itemView.findViewById(R.id.crime_solved)
-
-        init {
-            itemView.setOnClickListener(this)
-        }
-
-        fun bind(crime:Crime){
-            this.crime = crime
-            titleTextView.text = this.crime.title
-            dateTextView.text = this.crime.date.toString()
-            solvedImageView.visibility = if(crime.isSolved){
-                View.VISIBLE
-            } else{
-                View.GONE
-            }
-        }
-
-        override fun onClick(p0: View?) {
-            callbacks?.onCrimeSelected(crime.id)
-            Toast.makeText(context, "${crime.title} pressed!", Toast.LENGTH_SHORT).show()
-        }
+    override fun onCrimeSelected(crimeId: UUID) {
+        Toast.makeText(context, "${crimeId.toString()} pressed!", Toast.LENGTH_SHORT).show()
+        fragmentCallback?.onCrimeSelected(crimeId)
     }
 
-    private inner class CrimeAdapter(var crimes:List<Crime>):RecyclerView.Adapter<CrimeHolder>(){
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CrimeHolder {
-            val view = layoutInflater.inflate(R.layout.list_item_crime, parent, false)
-            return CrimeHolder(view)
-        }
 
-        override fun getItemCount() = crimes.size
-
-        override fun onBindViewHolder(holder: CrimeHolder, position: Int) {
-            val crime = crimes[position]
-            holder.bind(crime)
-        }
-    }
 }
